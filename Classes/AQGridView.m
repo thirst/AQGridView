@@ -164,7 +164,6 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
   _flags.delegateDidSelectItemMultiTouch = [obj respondsToSelector: @selector(gridView:didSelectItemAtIndex:numFingersTouch:)];
 	_flags.delegateDidDeselectItem = [obj respondsToSelector: @selector(gridView:didDeselectItemAtIndex:)];
 	_flags.delegateGestureRecognizerActivated = [obj respondsToSelector: @selector(gridView:gestureRecognizer:activatedForItemAtIndex:)];
-	_flags.delegateAdjustGridCellFrame = [obj respondsToSelector: @selector(gridView:adjustCellFrame:withinGridCellFrame:)];
 	_flags.delegateDidEndUpdateAnimation = [obj respondsToSelector:@selector(gridViewDidEndUpdateAnimation:)];
 }
 
@@ -186,18 +185,6 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	_dataSource = obj;
 
 	_flags.dataSourceGridCellSize = [obj respondsToSelector: @selector(portraitGridCellSizeForGridView:)];
-}
-
-
-- (AQGridViewLayoutDirection) layoutDirection
-{
-	return ( _gridLayout.layoutDirection );
-}
-
-
-- (void) setLayoutDirection: (AQGridViewLayoutDirection) direction
-{
-	_gridLayout.layoutDirection = direction;
 }
 
 
@@ -274,13 +261,13 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 
 - (BOOL) clipsContentWidthToBounds
 {
-	return ( self.layoutDirection == AQGridViewLayoutDirectionVertical );
+	return ( _gridLayout.layoutDirection == AQGridViewLayoutDirectionVertical );
 }
 
 
 - (void) setClipsContentWidthToBounds: (BOOL) value
 {
-	self.layoutDirection = (value ? AQGridViewLayoutDirectionVertical : AQGridViewLayoutDirectionHorizontal);
+	_gridLayout.layoutDirection = (value ? AQGridViewLayoutDirectionVertical : AQGridViewLayoutDirectionHorizontal);
 }
 
 
@@ -435,7 +422,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 		if ( [_gridLayout pointIsNearTheEnd: oldMaxLocation] )
 		{
 			// we were scrolled to the bottom-- stay there as our height decreases
-			if ( self.layoutDirection == AQGridViewLayoutDirectionVertical )
+			if ( _gridLayout.layoutDirection == AQGridViewLayoutDirectionVertical )
 				offset.y = MAX(0.0, self.contentSize.height - self.bounds.size.height);
 			else
 				offset.x = MAX(0.0, self.contentSize.width - self.bounds.size.width);
@@ -1752,10 +1739,6 @@ NSArray * __sortDescriptors;
 		cellFrame.origin.x = gridRect.origin.x + floorf( (gridRect.size.width - cellFrame.size.width) * 0.5 );
 		cellFrame.origin.y = gridRect.origin.y + floorf( (gridRect.size.height - cellFrame.size.height) * 0.5 );
 	}
-
-	// let the delegate update it if appropriate
-	if ( _flags.delegateAdjustGridCellFrame )
-		cellFrame = [self.delegate gridView: self adjustCellFrame: cellFrame withinGridCellFrame: gridRect];
 
 	return ( cellFrame );
 }

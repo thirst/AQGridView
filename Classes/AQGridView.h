@@ -53,24 +53,26 @@ typedef enum {
 	AQGridViewItemAnimationNone
 } AQGridViewItemAnimation;
 
-typedef enum {
-	AQGridViewLayoutDirectionVertical,
-	AQGridViewLayoutDirectionHorizontal
-} AQGridViewLayoutDirection;
 
-@protocol AQGridViewDataSource;
-@class AQGridView, AQGridViewLayout, AQGridViewUpdateInfo;
+
+@class AQGridView;
+
+@protocol AQGridViewDataSource <NSObject>
+@required
+- (NSUInteger) numberOfItemsInGridView: (AQGridView *) gridView;
+- (AQGridViewCell *) gridView: (AQGridView *) gridView cellForItemAtIndex: (NSUInteger) index;
+@optional
+// all cells are placed in a logical 'grid cell', all of which are the same size. The default size is 96x128 (portrait).
+// The width/height values returned by this function will be rounded UP to the nearest denominator of the screen width.
+- (CGSize) portraitGridCellSizeForGridView: (AQGridView *) gridView;
+@end
+
 
 @protocol AQGridViewDelegate <NSObject, UIScrollViewDelegate>
-
 @optional
-
 // Display customization
-
 - (void) gridView: (AQGridView *) gridView willDisplayCell: (AQGridViewCell *) cell forItemAtIndex: (NSUInteger) index;
-
 // Selection
-
 // Called before selection occurs. Return a new index, or NSNotFound, to change the proposed selection.
 - (NSUInteger) gridView: (AQGridView *) gridView willSelectItemAtIndex: (NSUInteger) index;
 - (NSUInteger) gridView: (AQGridView *) gridView willSelectItemAtIndex: (NSUInteger) index numFingersTouch:(NSUInteger) numFingers;
@@ -79,21 +81,14 @@ typedef enum {
 - (void) gridView: (AQGridView *) gridView didSelectItemAtIndex: (NSUInteger) index;
 - (void) gridView: (AQGridView *) gridView didSelectItemAtIndex: (NSUInteger) index numFingersTouch:(NSUInteger)numFingers;
 - (void) gridView: (AQGridView *) gridView didDeselectItemAtIndex: (NSUInteger) index;
-
 // Called after animated updates finished
 - (void) gridViewDidEndUpdateAnimation:(AQGridView *) gridView;
-
-// NOT YET IMPLEMENTED
-- (void) gridView: (AQGridView *) gridView gestureRecognizer: (UIGestureRecognizer *) recognizer activatedForItemAtIndex: (NSUInteger) index;
-
-- (CGRect) gridView: (AQGridView *) gridView adjustCellFrame: (CGRect) cellFrame withinGridCellFrame: (CGRect) gridCellFrame;
-
-// Editing
-- (void)gridView:(AQGridView *)aGridView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forItemAtIndex:(NSUInteger)index;
-
 @end
 
+
 extern NSString * const AQGridViewSelectionDidChangeNotification;
+
+@class AQGridViewLayout, AQGridViewUpdateInfo;
 
 @interface AQGridView : UIScrollView
 {
@@ -154,7 +149,6 @@ extern NSString * const AQGridViewSelectionDidChangeNotification;
         unsigned    delegateDidSelectItemMultiTouch:1;
 		unsigned	delegateDidDeselectItem:1;
 		unsigned	delegateGestureRecognizerActivated:1;
-		unsigned	delegateAdjustGridCellFrame:1;
 		unsigned    delegateDidEndUpdateAnimation:1;
 
 		unsigned	dataSourceGridCellSize:1;
@@ -167,8 +161,6 @@ extern NSString * const AQGridViewSelectionDidChangeNotification;
 
 @property (nonatomic, unsafe_unretained) IBOutlet id<AQGridViewDataSource> dataSource;
 @property (nonatomic, unsafe_unretained) IBOutlet id<AQGridViewDelegate> delegate;
-
-@property (nonatomic, assign) AQGridViewLayoutDirection layoutDirection;
 
 // Data
 
@@ -245,17 +237,3 @@ extern NSString * const AQGridViewSelectionDidChangeNotification;
 
 @end
 
-@protocol AQGridViewDataSource <NSObject>
-
-@required
-
-- (NSUInteger) numberOfItemsInGridView: (AQGridView *) gridView;
-- (AQGridViewCell *) gridView: (AQGridView *) gridView cellForItemAtIndex: (NSUInteger) index;
-
-@optional
-
-// all cells are placed in a logical 'grid cell', all of which are the same size. The default size is 96x128 (portrait).
-// The width/height values returned by this function will be rounded UP to the nearest denominator of the screen width.
-- (CGSize) portraitGridCellSizeForGridView: (AQGridView *) gridView;
-
-@end

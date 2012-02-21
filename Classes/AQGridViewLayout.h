@@ -38,6 +38,11 @@
 #import <UIKit/UIKit.h>
 #import "AQGridView.h"
 
+typedef enum {
+	AQGridViewLayoutDirectionVertical,
+	AQGridViewLayoutDirectionHorizontal
+} AQGridViewLayoutDirection;
+
 @interface AQGridViewLayout : NSObject <NSCopying, NSMutableCopying>
 {
 	CGSize						_boundsSize;
