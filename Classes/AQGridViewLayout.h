@@ -40,11 +40,7 @@
 
 @interface AQGridViewLayout : NSObject <NSCopying, NSMutableCopying>
 {
-	AQGridView *				__unsafe_unretained _gridView;				// weak reference
 	CGSize						_boundsSize;
-	AQGridViewLayoutDirection	_layoutDirection;
-	CGSize						_desiredCellSize;		// NB: 'cell' here means a grid cell -- i.e. constant size, tessellating
-	CGSize						_actualCellSize;
 	
 	CGFloat						_topPadding;
 	CGFloat						_bottomPadding;
@@ -53,14 +49,17 @@
 	
 	NSUInteger					_numberOfItems;
 	NSUInteger					_reorderedIndex;
+    
+	AQGridViewLayoutDirection	_layoutDirection;
+	CGSize						_desiredCellSize;		// NB: 'cell' here means a grid cell -- i.e. constant size, tessellating
+	CGSize						_actualCellSize;
 }
 
-- (id) initWithGridView: (AQGridView *) gridView;
+- (id)initWithBoundsSize:(CGSize)boundsSize;
 
 @property (nonatomic) NSUInteger numberOfItems;
 
 @property (nonatomic) CGFloat topPadding, bottomPadding, leftPadding, rightPadding;
-@property (nonatomic) AQGridViewLayoutDirection layoutDirection;
 
 // notify this object of changes to the layout parameters
 - (void) gridViewDidChangeBoundsSize: (CGSize) boundsSize;
@@ -72,9 +71,6 @@
 - (NSUInteger) itemIndexForPoint: (CGPoint) point;
 - (BOOL) pointIsNearTheEnd: (CGPoint) point;
 
-// grid cell sizes-- for the layout calculations
-- (void) setDesiredCellSize: (CGSize) desiredCellSize;
-
 // metrics used within the scroll view
 - (CGRect) rectForEntireGrid;
 - (CGSize) sizeForEntireGrid;
@@ -82,5 +78,9 @@
 - (CGRect) cellRectAtIndex: (NSUInteger) index;
 - (CGRect) cellRectForPoint: (CGPoint) point;
 - (NSIndexSet *) indicesOfCellsInRect: (CGRect) rect;		// NB: Grid Cells only-- AQGridViewCells might not actually intersect
+
+// grid-specific interfaces
+@property (nonatomic) AQGridViewLayoutDirection layoutDirection;
+- (void) setDesiredCellSize: (CGSize) desiredCellSize;
 
 @end

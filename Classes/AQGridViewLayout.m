@@ -46,21 +46,22 @@
 
 @synthesize reorderedIndex=_reorderedIndex, numberOfItems=_numberOfItems, topPadding=_topPadding, bottomPadding=_bottomPadding, leftPadding=_leftPadding, rightPadding=_rightPadding, layoutDirection=_layoutDirection;
 
-- (id) initWithGridView: (AQGridView *) gridView
+
+- (id)initWithBoundsSize:(CGSize)boundsSize
 {
 	self = [super init];
 	if ( self == nil )
 		return ( nil );
 	
-	_gridView = gridView;
-	_boundsSize = gridView.bounds.size;
+	_boundsSize = boundsSize;
 	
 	return ( self );
 }
 
+
 - (id) copyWithZone: (NSZone *) zone
 {
-	AQGridViewLayout * theCopy = [[AQGridViewLayout allocWithZone: zone] initWithGridView: _gridView];
+	AQGridViewLayout * theCopy = [[AQGridViewLayout allocWithZone: zone] initWithBoundsSize:_boundsSize];
 	theCopy->_desiredCellSize = _desiredCellSize;
 	theCopy->_actualCellSize = _actualCellSize;
 	theCopy->_layoutDirection = _layoutDirection;
@@ -73,10 +74,12 @@
 	return ( theCopy );
 }
 
+
 - (id) mutableCopyWithZone: (NSZone *) zone
 {
 	return ( [self copyWithZone: zone] );
 }
+
 
 - (void) gridViewDidChangeBoundsSize: (CGSize) boundsSize
 {
@@ -84,6 +87,7 @@
 	if ( _layoutDirection == AQGridViewLayoutDirectionVertical )
 		[self fixDesiredCellSizeForWidth: boundsSize.width];
 }
+
 
 - (NSUInteger) itemIndexForPoint: (CGPoint) point
 {
@@ -106,6 +110,7 @@
 	return ( result );
 }
 
+
 - (BOOL) pointIsNearTheEnd: (CGPoint) point
 {
 	CGRect rect = [self rectForEntireGrid];
@@ -116,10 +121,12 @@
 	return ( point.x >= (rect.size.width - _actualCellSize.width) );
 }
 
+
 - (CGRect) cellRectForPoint: (CGPoint) point
 {
 	return ( [self cellRectAtIndex: [self itemIndexForPoint: point]] );
 }
+
 
 - (void) setDesiredCellSize: (CGSize) desiredCellSize
 {
@@ -130,6 +137,7 @@
 		_actualCellSize = _desiredCellSize;
 }
 
+
 - (void) setLayoutDirection: (AQGridViewLayoutDirection) direction
 {
 	if ( direction == AQGridViewLayoutDirectionVertical )
@@ -139,6 +147,7 @@
 	_layoutDirection = direction;
 }
 
+
 - (CGRect) rectForEntireGrid
 {
 	CGRect rect;
@@ -147,6 +156,7 @@
 	rect.size = [self sizeForEntireGrid];
 	return ( rect );
 }
+
 
 - (CGSize) sizeForEntireGrid
 {
@@ -158,28 +168,12 @@
 		numRows++;
 	
 	CGFloat height = ( ((CGFloat)ceilf((CGFloat)numRows * _actualCellSize.height)) + _topPadding + _bottomPadding );
-	if (height < _gridView.bounds.size.height)
-		height = _gridView.bounds.size.height;
+	if (height < _boundsSize.height)
+		height = _boundsSize.height;
 	
 	return ( CGSizeMake(((CGFloat)ceilf(_actualCellSize.width * numPerRow)) + _leftPadding + _rightPadding, height) );
 }
 
-- (NSUInteger) numberOfItemsPerRow
-{
-	if ( _layoutDirection == AQGridViewLayoutDirectionVertical )
-		return ( (NSUInteger)floorf(_boundsSize.width / _actualCellSize.width) );
-	
-	// work out how many rows we can fit
-	NSUInteger rows = (NSUInteger)floorf(_boundsSize.height / _actualCellSize.height);
-	if (0 == rows) {
-		rows = 1;
-	}
-	NSUInteger cols = _numberOfItems / rows;
-	if ( _numberOfItems % rows != 0 )
-		cols++;
-	
-	return ( cols );	
-}
 
 - (CGRect) cellRectAtIndex: (NSUInteger) index
 {
@@ -196,6 +190,7 @@
 	
 	return ( result );
 }
+
 
 - (NSIndexSet *) indicesOfCellsInRect: (CGRect) aRect
 {
@@ -226,6 +221,24 @@
 	}
 	
 	return ( result );
+}
+
+
+- (NSUInteger) numberOfItemsPerRow
+{
+	if ( _layoutDirection == AQGridViewLayoutDirectionVertical )
+		return ( (NSUInteger)floorf(_boundsSize.width / _actualCellSize.width) );
+	
+	// work out how many rows we can fit
+	NSUInteger rows = (NSUInteger)floorf(_boundsSize.height / _actualCellSize.height);
+	if (0 == rows) {
+		rows = 1;
+	}
+	NSUInteger cols = _numberOfItems / rows;
+	if ( _numberOfItems % rows != 0 )
+		cols++;
+	
+	return ( cols );	
 }
 
 

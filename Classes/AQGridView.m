@@ -101,7 +101,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 
 - (void) _sharedGridViewInit
 {
-	_gridLayout = [[AQGridViewLayout alloc] initWithGridView: self];
+	_gridLayout = [[AQGridViewLayout alloc] initWithBoundsSize:self.bounds.size];
 	[_gridLayout setDesiredCellSize: CGSizeMake(96.0, 128.0)];
 
 	_visibleBounds = self.bounds;
