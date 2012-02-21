@@ -39,10 +39,10 @@
 
 // used by AQGridViewUpdateInfo
 @interface AQGridView (AQCellLayout)
-- (CGRect) fixCellFrame: (CGRect) cellFrame forGridRect: (CGRect) gridRect;
-- (void) updateGridViewBoundsForNewGridData: (AQGridViewData *) newGridData;
+- (CGRect) adjustCellFrame: (CGRect) cellFrame forGridRect: (CGRect) gridRect;
+- (void) updateGridViewBoundsForNewGridData: (AQGridViewLayout *) newGridData;
 - (AQGridViewCell *) createPreparedCellForIndex: (NSUInteger) index;
-- (AQGridViewCell *) createPreparedCellForIndex: (NSUInteger) index usingGridData: (AQGridViewData *) gridData;
+- (AQGridViewCell *) createPreparedCellForIndex: (NSUInteger) index usingGridData: (AQGridViewLayout *) gridData;
 - (void) insertVisibleCell: (AQGridViewCell *) cell atIndex: (NSUInteger) visibleCellListIndex;
 - (void) deleteVisibleCell: (AQGridViewCell *) cell atIndex: (NSUInteger) visibleCellListIndex appendingNewCell: (AQGridViewCell *) newCell;
 - (void) ensureCellInVisibleList: (AQGridViewCell *) cell;

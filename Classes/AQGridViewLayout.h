@@ -38,7 +38,7 @@
 #import <UIKit/UIKit.h>
 #import "AQGridView.h"
 
-@interface AQGridViewData : NSObject <NSCopying, NSMutableCopying>
+@interface AQGridViewLayout : NSObject <NSCopying, NSMutableCopying>
 {
 	AQGridView *				__unsafe_unretained _gridView;				// weak reference
 	CGSize						_boundsSize;
@@ -70,16 +70,14 @@
 
 // Turning view locations into item indices
 - (NSUInteger) itemIndexForPoint: (CGPoint) point;
-- (BOOL) pointIsInLastRow: (CGPoint) point;
+- (BOOL) pointIsNearTheEnd: (CGPoint) point;
 
 // grid cell sizes-- for the layout calculations
 - (void) setDesiredCellSize: (CGSize) desiredCellSize;
-- (CGSize) cellSize;
 
 // metrics used within the scroll view
 - (CGRect) rectForEntireGrid;
 - (CGSize) sizeForEntireGrid;
-- (NSUInteger) numberOfItemsPerRow;
 
 - (CGRect) cellRectAtIndex: (NSUInteger) index;
 - (CGRect) cellRectForPoint: (CGPoint) point;

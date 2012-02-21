@@ -34,14 +34,15 @@
  *
  */
 
-#import "AQGridViewData.h"
+#import "AQGridViewLayout.h"
 #import "AQGridView.h"
 
-@interface AQGridViewData (AQGridViewDataPrivate)
+@interface AQGridViewLayout (AQGridViewDataPrivate)
+- (NSUInteger) numberOfItemsPerRow;
 - (void) fixDesiredCellSizeForWidth: (CGFloat) width;
 @end
 
-@implementation AQGridViewData
+@implementation AQGridViewLayout
 
 @synthesize reorderedIndex=_reorderedIndex, numberOfItems=_numberOfItems, topPadding=_topPadding, bottomPadding=_bottomPadding, leftPadding=_leftPadding, rightPadding=_rightPadding, layoutDirection=_layoutDirection;
 
@@ -59,7 +60,7 @@
 
 - (id) copyWithZone: (NSZone *) zone
 {
-	AQGridViewData * theCopy = [[AQGridViewData allocWithZone: zone] initWithGridView: _gridView];
+	AQGridViewLayout * theCopy = [[AQGridViewLayout allocWithZone: zone] initWithGridView: _gridView];
 	theCopy->_desiredCellSize = _desiredCellSize;
 	theCopy->_actualCellSize = _actualCellSize;
 	theCopy->_layoutDirection = _layoutDirection;
@@ -105,7 +106,7 @@
 	return ( result );
 }
 
-- (BOOL) pointIsInLastRow: (CGPoint) point
+- (BOOL) pointIsNearTheEnd: (CGPoint) point
 {
 	CGRect rect = [self rectForEntireGrid];
 	if ( _layoutDirection == AQGridViewLayoutDirectionVertical )
@@ -136,11 +137,6 @@
 	else
 		_actualCellSize = _desiredCellSize;
 	_layoutDirection = direction;
-}
-
-- (CGSize) cellSize
-{
-	return ( _actualCellSize );
 }
 
 - (CGRect) rectForEntireGrid
@@ -232,9 +228,6 @@
 	return ( result );
 }
 
-@end
-
-@implementation AQGridViewData (AQGridViewDataPrivate)
 
 - (void) fixDesiredCellSizeForWidth: (CGFloat) width
 {

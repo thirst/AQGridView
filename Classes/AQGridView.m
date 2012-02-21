@@ -37,7 +37,7 @@
 #import "AQGridView.h"
 #import "AQGridViewUpdateItem.h"
 #import "AQGridViewAnimatorItem.h"
-#import "AQGridViewData.h"
+#import "AQGridViewLayout.h"
 #import "AQGridViewUpdateInfo.h"
 #import "AQGridViewCell+AQGridViewCellPrivate.h"
 #import "AQGridView+CellLocationDelegation.h"
@@ -49,6 +49,7 @@
 // see _basicHitTest:withEvent: below
 #import <objc/objc.h>
 #import <objc/runtime.h>
+
 
 // Lightweight object class for touch selection parameters
 @interface UserSelectItemIndexParams : NSObject
@@ -71,24 +72,27 @@
 
 NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectionDidChangeNotification";
 
+
 @interface AQGridView (AQCellGridMath)
 - (NSUInteger) visibleCellListIndexForItemIndex: (NSUInteger) itemIndex;
 @end
 
+
 @interface AQGridView (AQCellLayout)
 - (void) layoutCellsInVisibleCellRange: (NSRange) range;
 - (void) layoutAllCells;
-- (CGRect) fixCellFrame: (CGRect) cellFrame forGridRect: (CGRect) gridRect;
+- (CGRect) adjustCellFrame: (CGRect) cellFrame forGridRect: (CGRect) gridRect;
 - (void) updateVisibleGridCellsNow;
-//- (void) updateForwardCellsForVisibleIndices: (NSIndexSet *) newVisibleIndices;
 - (AQGridViewCell *) createPreparedCellForIndex: (NSUInteger) index;
 - (void) insertVisibleCell: (AQGridViewCell *) cell atIndex: (NSUInteger) visibleCellListIndex;
 - (void) deleteVisibleCell: (AQGridViewCell *) cell atIndex: (NSUInteger) visibleCellListIndex appendingNewCell: (AQGridViewCell *) newLastCell;
 @end
 
+
 @interface AQGridView ()
 @property (nonatomic, copy) NSIndexSet * animatingIndices;
 @end
+
 
 
 @implementation AQGridView
@@ -97,8 +101,8 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 
 - (void) _sharedGridViewInit
 {
-	_gridData = [[AQGridViewData alloc] initWithGridView: self];
-	[_gridData setDesiredCellSize: CGSizeMake(96.0, 128.0)];
+	_gridLayout = [[AQGridViewLayout alloc] initWithGridView: self];
+	[_gridLayout setDesiredCellSize: CGSizeMake(96.0, 128.0)];
 
 	_visibleBounds = self.bounds;
 	_visibleCells = [[NSMutableArray alloc] init];
@@ -118,6 +122,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	_flags.contentSizeFillsBounds = 1;
 }
 
+
 - (id)initWithFrame: (CGRect) frame
 {
     self = [super initWithFrame:frame];
@@ -129,6 +134,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	return ( self );
 }
 
+
 - (id) initWithCoder: (NSCoder *) aDecoder
 {
 	self = [super initWithCoder: aDecoder];
@@ -139,14 +145,6 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 
 	return ( self );
 }
-
-/*
-// Only override drawRect: if you perform custom drawing.
-// An empty implementation adversely affects performance during animation.
-- (void)drawRect:(CGRect)rect {
-    // Drawing code
-}
-*/
 
 
 #pragma mark -
@@ -170,6 +168,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	_flags.delegateDidEndUpdateAnimation = [obj respondsToSelector:@selector(gridViewDidEndUpdateAnimation:)];
 }
 
+
 - (id<AQGridViewDelegate>) delegate
 {
 	id obj = [super delegate];
@@ -177,6 +176,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 		return ( nil );
 	return ( obj );
 }
+
 
 - (void) setDataSource: (id<AQGridViewDataSource>) obj
 {
@@ -188,65 +188,78 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	_flags.dataSourceGridCellSize = [obj respondsToSelector: @selector(portraitGridCellSizeForGridView:)];
 }
 
+
 - (AQGridViewLayoutDirection) layoutDirection
 {
-	return ( _gridData.layoutDirection );
+	return ( _gridLayout.layoutDirection );
 }
+
 
 - (void) setLayoutDirection: (AQGridViewLayoutDirection) direction
 {
-	_gridData.layoutDirection = direction;
+	_gridLayout.layoutDirection = direction;
 }
+
 
 - (NSUInteger) numberOfItems
 {
-	return ( _gridData.numberOfItems );
+	return ( _gridLayout.numberOfItems );
 }
+
 
 - (BOOL) allowsSelection
 {
 	return ( _flags.allowsSelection );
 }
 
+
 - (void) setAllowsSelection: (BOOL) value
 {
 	_flags.allowsSelection = (value ? 1 : 0);
 }
+
 
 - (BOOL) backgroundViewExtendsDown
 {
 	return ( _flags.backgroundViewExtendsDown);
 }
 
+
 - (void) setBackgroundViewExtendsDown: (BOOL) value
 {
 	_flags.backgroundViewExtendsDown = (value ? 1 : 0);
 }
+
 
 - (BOOL) backgroundViewExtendsUp
 {
 	return ( _flags.backgroundViewExtendsUp);
 }
 
+
 - (void) setBackgroundViewExtendsUp: (BOOL) value
 {
 	_flags.backgroundViewExtendsUp = (value ? 1 : 0);
 }
+
 
 - (BOOL) requiresSelection
 {
 	return ( _flags.requiresSelection );
 }
 
+
 - (void) setRequiresSelection: (BOOL) value
 {
 	_flags.requiresSelection = (value ? 1 : 0);
 }
 
+
 - (BOOL) resizesCellWidthToFit
 {
 	return ( _flags.resizesCellWidths );
 }
+
 
 - (void) setResizesCellWidthToFit: (BOOL) value
 {
@@ -258,20 +271,24 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	[self setNeedsLayout];
 }
 
+
 - (BOOL) clipsContentWidthToBounds
 {
 	return ( self.layoutDirection == AQGridViewLayoutDirectionVertical );
 }
+
 
 - (void) setClipsContentWidthToBounds: (BOOL) value
 {
 	self.layoutDirection = (value ? AQGridViewLayoutDirectionVertical : AQGridViewLayoutDirectionHorizontal);
 }
 
+
 - (BOOL) usesPagedHorizontalScrolling
 {
 	return ( _flags.usesPagedHorizontalScrolling );
 }
+
 
 - (void) setUsesPagedHorizontalScrolling: (BOOL) value
 {
@@ -285,33 +302,33 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 
 - (CGFloat) leftContentInset
 {
-	return ( _gridData.leftPadding );
+	return ( _gridLayout.leftPadding );
 }
+
 
 - (void) setLeftContentInset: (CGFloat) inset
 {
-	_gridData.leftPadding = inset;
+	_gridLayout.leftPadding = inset;
 }
+
 
 - (CGFloat) rightContentInset
 {
-	return ( _gridData.rightPadding );
+	return ( _gridLayout.rightPadding );
 }
+
 
 - (void) setRightContentInset: (CGFloat) inset
 {
-	_gridData.rightPadding = inset;
+	_gridLayout.rightPadding = inset;
 }
 
-- (CGSize) gridCellSize
-{
-	return ( [_gridData cellSize] );
-}
 
 - (UIView *) gridHeaderView
 {
 	return ( _headerView );
 }
+
 
 - (void) setGridHeaderView: (UIView *) newHeaderView
 {
@@ -323,21 +340,23 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	_headerView = newHeaderView;
 	if ( _headerView == nil )
 	{
-		_gridData.topPadding = 0.0;
+		_gridLayout.topPadding = 0.0;
 	}
 	else
 	{
 		[self addSubview: _headerView];
-		_gridData.topPadding = _headerView.frame.size.height;
+		_gridLayout.topPadding = _headerView.frame.size.height;
 	}
 
 	[self setNeedsLayout];
 }
 
+
 - (UIView *) gridFooterView
 {
 	return ( _footerView );
 }
+
 
 - (void) setGridFooterView: (UIView *) newFooterView
 {
@@ -349,26 +368,29 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	_footerView = newFooterView;
 	if ( _footerView == nil )
 	{
-		_gridData.bottomPadding = 0.0;
+		_gridLayout.bottomPadding = 0.0;
 	}
 	else
 	{
 		[self addSubview: _footerView];
-		_gridData.bottomPadding = _footerView.frame.size.height;
+		_gridLayout.bottomPadding = _footerView.frame.size.height;
 	}
 
 	[self setNeedsLayout];
 }
+
 
 - (BOOL) contentSizeGrowsToFillBounds
 {
 	return ( _flags.contentSizeFillsBounds == 1 );
 }
 
+
 - (void) setContentSizeGrowsToFillBounds: (BOOL) value
 {
 	_flags.contentSizeFillsBounds = (value ? 1 : 0);
 }
+
 
 - (void) setAnimatingCells: (NSSet *) set
 {
@@ -384,10 +406,12 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	self.animatingIndices = indices;
 }
 
+
 - (BOOL) isAnimatingUpdates
 {
     return ( _animationCount > 0 );
 }
+
 
 - (void) updateContentRectWithOldMaxLocation: (CGPoint) oldMaxLocation gridSize: (CGSize) gridSize
 {
@@ -408,7 +432,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	}
 	else if ( !CGPointEqualToPoint(oldOffset, CGPointZero) )	// stick-to-top takes precedence
 	{
-		if ( [_gridData pointIsInLastRow: oldMaxLocation] )
+		if ( [_gridLayout pointIsNearTheEnd: oldMaxLocation] )
 		{
 			// we were scrolled to the bottom-- stay there as our height decreases
 			if ( self.layoutDirection == AQGridViewLayoutDirectionVertical )
@@ -422,13 +446,14 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	self.contentOffset = offset;
 }
 
+
 - (void) handleGridViewBoundsChanged: (CGRect) oldBounds toNewBounds: (CGRect) bounds
 {
-	CGSize oldGridSize = [_gridData sizeForEntireGrid];
+	CGSize oldGridSize = [_gridLayout sizeForEntireGrid];
 	BOOL wasAtBottom = ((oldGridSize.height != 0.0) && (CGRectGetMaxY(oldBounds) == oldGridSize.height));
 
-	[_gridData gridViewDidChangeBoundsSize: bounds.size];
-	CGSize newGridSize = [_gridData sizeForEntireGrid];
+	[_gridLayout gridViewDidChangeBoundsSize: bounds.size];
+	CGSize newGridSize = [_gridLayout sizeForEntireGrid];
 
 	CGPoint oldMaxLocation = CGPointMake(CGRectGetMaxX(oldBounds), CGRectGetMaxY(oldBounds));
 	[self updateContentRectWithOldMaxLocation: oldMaxLocation gridSize: newGridSize];
@@ -447,10 +472,12 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	_flags.allCellsNeedLayout = 1;
 }
 
+
 - (void) setContentOffset:(CGPoint) offset
 {
 	[super setContentOffset: offset];
 }
+
 
 - (void)setContentOffset: (CGPoint) contentOffset animated: (BOOL) animate
 {
@@ -461,13 +488,9 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	if (!animate)
 	{
 		[self updateVisibleGridCellsNow];
-		/*if (![_visibleCells count])
-		{
-			NSIndexSet * newIndices = [_gridData indicesOfCellsInRect: [self gridViewVisibleBounds]];
-			[self updateForwardCellsForVisibleIndices: newIndices];
-		}*/
 	}
 }
+
 
 - (void) setContentSize: (CGSize) newSize
 {
@@ -492,7 +515,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	[super setContentSize: newSize];
 
 	if ( oldSize.width != newSize.width )
-		[_gridData gridViewDidChangeBoundsSize: newSize];
+		[_gridLayout gridViewDidChangeBoundsSize: newSize];
 
 	if ( CGRectGetMaxY(self.bounds) > newSize.height )
 	{
@@ -502,6 +525,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 		self.bounds = b;
 	}
 }
+
 
 - (void) setFrame: (CGRect) newFrame
 {
@@ -513,6 +537,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 		[self handleGridViewBoundsChanged: oldBounds toNewBounds: newBounds];
 }
 
+
 - (void) setBounds: (CGRect) bounds
 {
 	CGRect oldBounds = self.bounds;
@@ -523,15 +548,18 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 		[self handleGridViewBoundsChanged: oldBounds toNewBounds: bounds];
 }
 
+
 - (BOOL) isEditing
 {
 	return ( _flags.isEditing == 1 );
 }
 
+
 - (void) setEditing: (BOOL) value
 {
 	[self setEditing:value animated:NO];
 }
+
 
 #pragma mark -
 #pragma mark Data Management
@@ -548,6 +576,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	[cells removeObject: cell];
 	return ( cell );
 }
+
 
 - (void) enqueueReusableCells: (NSArray *) reusableCells
 {
@@ -569,6 +598,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	}
 }
 
+
 - (CGRect) gridViewVisibleBounds
 {
 	CGRect result = CGRectZero;
@@ -577,6 +607,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	return ( result );
 }
 
+
 - (void) reloadData
 {
 	if ( _reloadingSuspendedCount != 0 )
@@ -584,16 +615,16 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 
 	if ( _flags.dataSourceGridCellSize == 1 )
 	{
-		[_gridData setDesiredCellSize: [_dataSource portraitGridCellSizeForGridView: self]];
+		[_gridLayout setDesiredCellSize: [_dataSource portraitGridCellSizeForGridView: self]];
 	}
 
-	_gridData.numberOfItems = [_dataSource numberOfItemsInGridView: self];
+	_gridLayout.numberOfItems = [_dataSource numberOfItemsInGridView: self];
 
 	// update our content size as appropriate
-	self.contentSize = [_gridData sizeForEntireGrid];
+	self.contentSize = [_gridLayout sizeForEntireGrid];
 
     // fix up the visible index list
-    NSUInteger cutoff = MAX(0, _gridData.numberOfItems-_visibleIndices.length);
+    NSUInteger cutoff = MAX(0, _gridLayout.numberOfItems-_visibleIndices.length);
     _visibleIndices.location = MIN(_visibleIndices.location, cutoff);
 	_visibleIndices.length = 0;
 
@@ -608,6 +639,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	[self setNeedsLayout];
 	_flags.allCellsNeedLayout = 1;
 }
+
 
 #define MAX_BOUNCE_DISTANCE (500.0f)
 
@@ -630,10 +662,9 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 
 	CGRect rect = CGRectZero;
 	rect.size.width = self.bounds.size.width;
-	rect.size.height = self.contentSize.height -  (_gridData.topPadding + _gridData.bottomPadding);
-	rect.origin.y += _gridData.topPadding;
+	rect.size.height = self.contentSize.height -  (_gridLayout.topPadding + _gridLayout.bottomPadding);
+	rect.origin.y += _gridLayout.topPadding;
 
-	// Make sure background is an integral number of rows tall. That way, it draws patterned colours correctly on all OSes.
 	CGRect backgroundRect = rect;
 
 	if ([self backgroundViewExtendsUp]) {
@@ -644,24 +675,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	if ([self backgroundViewExtendsDown]) {
 		backgroundRect.size.height = backgroundRect.size.height + MAX_BOUNCE_DISTANCE;
 	}
-
-	CGFloat minimumHeight = rect.size.height,
-		actualHeight = 0;
-
-	if (([_gridData numberOfItems] == 0) || ([_gridData numberOfItemsPerRow] == 0)) {
-
-		actualHeight = [_gridData cellSize].height;
-
-	} else {
-
-		actualHeight = [_gridData cellSize].height * ([_gridData numberOfItems] / [_gridData numberOfItemsPerRow] + 1);
-
-	}
-	for (; actualHeight < minimumHeight; actualHeight += [_gridData cellSize].height) {
-	}
-	backgroundRect.size.height = actualHeight;
-
-
+    
 	self.backgroundView.frame = backgroundRect;
 
 	if ( _headerView != nil )
@@ -683,15 +697,6 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	}
 }
 
-- (CGRect) rectForItemAtIndex: (NSUInteger) index
-{
-	// simple case -- there's a cell already, we can just ask for its frame
-	if ( NSLocationInRange(index, _visibleIndices) )
-		return ( [[_visibleCells objectAtIndex: [self visibleCellListIndexForItemIndex: index]] frame] );
-
-	// complex case-- compute the frame manually
-	return ( [self fixCellFrame: CGRectZero forGridRect: [_gridData cellRectAtIndex: index]] );
-}
 
 - (AQGridViewCell *) cellForItemAtIndex: (NSUInteger) index
 {
@@ -705,10 +710,12 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	return ( nil );
 }
 
+
 - (NSUInteger) indexForItemAtPoint: (CGPoint) point
 {
-	return ( [_gridData itemIndexForPoint: point] );
+	return ( [_gridLayout itemIndexForPoint: point] );
 }
+
 
 - (NSUInteger) indexForCell: (AQGridViewCell *) cell
 {
@@ -719,25 +726,29 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	return _visibleIndices.location + index;
 }
 
+
 - (AQGridViewCell *) cellForItemAtPoint: (CGPoint) point
 {
-	return ( [self cellForItemAtIndex: [_gridData itemIndexForPoint: point]] );
+	return ( [self cellForItemAtIndex: [_gridLayout itemIndexForPoint: point]] );
 }
+
 
 - (NSArray *) visibleCells
 {
 	return ( [_visibleCells copy] );
 }
 
+
 - (NSIndexSet *) visibleCellIndices
 {
 	return ( [NSIndexSet indexSetWithIndexesInRange: _visibleIndices] );
 }
 
+
 - (void) scrollToItemAtIndex: (NSUInteger) index atScrollPosition: (AQGridViewScrollPosition) scrollPosition
 					animated: (BOOL) animated
 {
-	CGRect gridRect = [_gridData cellRectAtIndex: index];
+	CGRect gridRect = [_gridLayout cellRectAtIndex: index];
 	CGRect targetRect = self.bounds;
 
 	switch ( scrollPosition )
@@ -772,6 +783,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	}
 }
 
+
 #pragma mark -
 #pragma mark Cell Updates
 
@@ -779,6 +791,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 {
 	return ( CGRectIntersectsRect(frameRect, self.bounds) );
 }
+
 
 - (void) fixCellsFromAnimation
 {
@@ -797,7 +810,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	}
 
 	// update the visible item list appropriately
-	NSIndexSet * indices = [_gridData indicesOfCellsInRect: self.bounds];
+	NSIndexSet * indices = [_gridLayout indicesOfCellsInRect: self.bounds];
 	if ( [indices count] == 0 )
 	{
 		_visibleIndices.location = 0;
@@ -809,7 +822,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 
 		// update the content size/offset based on the new grid data
 		CGPoint oldMaxLocation = CGPointMake(CGRectGetMaxX(self.bounds), CGRectGetMaxY(self.bounds));
-		[self updateContentRectWithOldMaxLocation: oldMaxLocation gridSize: [_gridData sizeForEntireGrid]];
+		[self updateContentRectWithOldMaxLocation: oldMaxLocation gridSize: [_gridLayout sizeForEntireGrid]];
 		return;
 	}
 
@@ -825,7 +838,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 			continue;
 		}
 
-		if ( [self isRectVisible: [_gridData cellRectForPoint: item.animatingView.center]] == NO )
+		if ( [self isRectVisible: [_gridLayout cellRectForPoint: item.animatingView.center]] == NO )
 		{
 			[item.animatingView removeFromSuperview];
 			continue;
@@ -856,16 +869,18 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 
 	// update the content size/offset based on the new grid data
 	CGPoint oldMaxLocation = CGPointMake(CGRectGetMaxX(self.bounds), CGRectGetMaxY(self.bounds));
-	[self updateContentRectWithOldMaxLocation: oldMaxLocation gridSize: [_gridData sizeForEntireGrid]];
+	[self updateContentRectWithOldMaxLocation: oldMaxLocation gridSize: [_gridLayout sizeForEntireGrid]];
 }
+
 
 - (void) setupUpdateAnimations
 {
 	_reloadingSuspendedCount++;
 
-	AQGridViewUpdateInfo * info = [[AQGridViewUpdateInfo alloc] initWithOldGridData: _gridData forGridView: self];
+	AQGridViewUpdateInfo * info = [[AQGridViewUpdateInfo alloc] initWithOldGridData: _gridLayout forGridView: self];
 	[_updateInfoStack addObject: info];
 }
+
 
 - (void) endUpdateAnimations
 {
@@ -890,7 +905,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 		[_updateInfoStack removeObject: info];
 		_reloadingSuspendedCount--;
 
-		[NSException raise: NSInternalInconsistencyException format: @"Invalid number of items in AQGridView: Started with %u, added %u, deleted %u. Expected %u items after changes, but got %u", (unsigned)_gridData.numberOfItems, (unsigned)numAdded, (unsigned)numDeleted, (unsigned)expectedItemCount, (unsigned)actualItemCount];
+		[NSException raise: NSInternalInconsistencyException format: @"Invalid number of items in AQGridView: Started with %u, added %u, deleted %u. Expected %u items after changes, but got %u", (unsigned)_gridLayout.numberOfItems, (unsigned)numAdded, (unsigned)numDeleted, (unsigned)expectedItemCount, (unsigned)actualItemCount];
 	}
 
 	[info cleanupUpdateItems];
@@ -902,7 +917,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
                          self.animatingCells = [info animateCellUpdatesUsingVisibleContentRect: [self gridViewVisibleBounds]];
                          
                          
-                         _gridData = [info newGridViewData];
+                         _gridLayout = [info newGridViewData];
                          if ( _selectedIndex != NSNotFound )
                              _selectedIndex = [info newIndexForOldIndex: _selectedIndex];
                          
@@ -923,17 +938,20 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
                      }];
 }
 
+
 - (void) beginUpdates
 {
 	if ( _updateCount++ == 0 )
 		[self setupUpdateAnimations];
 }
 
+
 - (void) endUpdates
 {
 	if ( --_updateCount == 0 )
 		[self endUpdateAnimations];
 }
+
 
 - (void) _updateItemsAtIndices: (NSIndexSet *) indices updateAction: (AQGridViewUpdateAction) action withAnimation: (AQGridViewItemAnimation) animation
 {
@@ -950,20 +968,24 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 		[self endUpdateAnimations];
 }
 
+
 - (void) insertItemsAtIndices: (NSIndexSet *) indices withAnimation: (AQGridViewItemAnimation) animation
 {
 	[self _updateItemsAtIndices: indices updateAction: AQGridViewUpdateActionInsert withAnimation: animation];
 }
+
 
 - (void) deleteItemsAtIndices: (NSIndexSet *) indices withAnimation: (AQGridViewItemAnimation) animation
 {
 	[self _updateItemsAtIndices: indices updateAction: AQGridViewUpdateActionDelete withAnimation: animation];
 }
 
+
 - (void) reloadItemsAtIndices: (NSIndexSet *) indices withAnimation: (AQGridViewItemAnimation) animation
 {
 	[self _updateItemsAtIndices: indices updateAction: AQGridViewUpdateActionReload withAnimation: animation];
 }
+
 
 - (void) moveItemAtIndex: (NSUInteger) index toIndex: (NSUInteger) newIndex withAnimation: (AQGridViewItemAnimation) animation
 {
@@ -978,6 +1000,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 		[self endUpdateAnimations];
 }
 
+
 - (void)setEditing:(BOOL)editing animated:(BOOL)animated
 {
 	_flags.isEditing = (editing ? 1 : 0);
@@ -988,6 +1011,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	}
 }
 
+
 #pragma mark -
 #pragma mark Selection
 
@@ -995,6 +1019,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 {
 	return ( _selectedIndex );
 }
+
 
 - (void) highlightItemAtIndex: (NSUInteger) index animated: (BOOL) animated scrollPosition: (AQGridViewScrollPosition) position
 {
@@ -1027,6 +1052,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 		[self scrollToItemAtIndex: index atScrollPosition: position animated: animated];
 }
 
+
 - (void) unhighlightItemAtIndex: (NSUInteger) index animated: (BOOL) animated
 {
 	if ( [_highlightedIndices containsIndex: index] == NO )
@@ -1042,6 +1068,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	if ( cell != nil )
 		[cell setHighlighted: NO animated: animated];
 }
+
 
 - (void) _deselectItemAtIndex: (NSUInteger) index animated: (BOOL) animated notifyDelegate: (BOOL) notifyDelegate
 {
@@ -1063,6 +1090,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 															object: self];
 	}
 }
+
 
 - (void) _selectItemAtIndex: (NSUInteger) index animated: (BOOL) animated
 			 scrollPosition: (AQGridViewScrollPosition) position notifyDelegate: (BOOL) notifyDelegate
@@ -1106,6 +1134,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	[_highlightedIndices removeIndex: index];
 }
 
+
 - (void) selectItemAtIndex: (NSUInteger) index animated: (BOOL) animated
 			scrollPosition: (AQGridViewScrollPosition) scrollPosition
 {
@@ -1113,10 +1142,12 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
            numFingersTouch: 1];
 }
 
+
 - (void) deselectItemAtIndex: (NSUInteger) index animated: (BOOL) animated
 {
 	[self _deselectItemAtIndex: index animated: animated notifyDelegate: NO];
 }
+
 
 #pragma mark -
 #pragma mark Appearance
@@ -1125,6 +1156,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 {
 	return ( _backgroundView );
 }
+
 
 - (void) setBackgroundView: (UIView *) newView
 {
@@ -1156,6 +1188,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	// this view is already laid out nicely-- no need to call -setNeedsLayout at all
 }
 
+
 #pragma mark -
 #pragma mark Touch Events
 
@@ -1172,6 +1205,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	IMP imp = method_getImplementation( method );
 	return ( (UIView *)imp(self, @selector(hitTest:withEvent:), point, event) ); // -[UIView hitTest:withEvent:]
 }
+
 
 - (BOOL) _canSelectItemContainingHitView: (UIView *) hitView
 {
@@ -1200,12 +1234,14 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	return ( NO );
 }
 
+
 - (void) _gridViewDeferredTouchesBegan: (NSNumber *) indexNum
 {
 	if ( (self.dragging == NO) && (_flags.ignoreTouchSelect == 0) && (_pendingSelectionIndex != NSNotFound) )
 		[self highlightItemAtIndex: _pendingSelectionIndex animated: NO scrollPosition: AQGridViewScrollPositionNone];
 	//_pendingSelectionIndex = NSNotFound;
 }
+
 
 - (void) _userSelectItemAtIndex: (UserSelectItemIndexParams*) params
 {
@@ -1219,6 +1255,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
              numFingersTouch: numFingersCount];
 	_pendingSelectionIndex = NSNotFound;
 }
+
 
 - (BOOL) _gestureRecognizerIsHandlingTouches: (NSSet *) touches
 {
@@ -1257,6 +1294,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	return ( NO );
 }
 
+
 - (void) touchesBegan: (NSSet *) touches withEvent: (UIEvent *) event
 {
 	_flags.ignoreTouchSelect = ([self isDragging] ? 1 : 0);
@@ -1294,16 +1332,8 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 
 	[super touchesBegan: touches withEvent: event];
 }
-/*
-- (void) _cancelContentTouchUsingEvent: (UIEvent *) event forced: (BOOL) forced
-{
-	static char * name = "_cancelContentTouchWithEvent:forced:";
 
-	// more manual ObjC runtime calls...
-	SEL selector = sel_getUid( name );
-	objc_msgSend( self, selector, event, forced );
-}
-*/
+
 - (void) touchesMoved: (NSSet *) touches withEvent: (UIEvent *) event
 {
 	if ( _flags.ignoreTouchSelect == 0 )
@@ -1324,6 +1354,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 passToSuper:
 	[super touchesMoved: touches withEvent: event];
 }
+
 
 - (void) touchesEnded: (NSSet *) touches withEvent: (UIEvent *) event
 {
@@ -1409,6 +1440,7 @@ passToSuper:
 
 @end
 
+
 #pragma mark -
 
 @implementation AQGridView (AQCellGridMath)
@@ -1420,11 +1452,13 @@ passToSuper:
 
 @end
 
+
 #pragma mark -
 
 @implementation AQGridView (AQCellLayout)
 
 NSArray * __sortDescriptors;
+
 
 - (void) sortVisibleCellList
 {
@@ -1436,11 +1470,13 @@ NSArray * __sortDescriptors;
 	[_visibleCells sortUsingDescriptors: __sortDescriptors];
 }
 
-- (void) updateGridViewBoundsForNewGridData: (AQGridViewData *) newGridData
+
+- (void) updateGridViewBoundsForNewGridData: (AQGridViewLayout *) newGridData
 {
 	CGPoint oldMaxLocation = CGPointMake(CGRectGetMaxX(self.bounds), CGRectGetMaxY(self.bounds));
 	[self updateContentRectWithOldMaxLocation: oldMaxLocation gridSize: [newGridData sizeForEntireGrid]];
 }
+
 
 - (void) updateVisibleGridCellsNow
 {
@@ -1451,7 +1487,7 @@ NSArray * __sortDescriptors;
 
     @autoreleasepool {
         
-        NSIndexSet * newVisibleIndices = [_gridData indicesOfCellsInRect: [self gridViewVisibleBounds]];
+        NSIndexSet * newVisibleIndices = [_gridLayout indicesOfCellsInRect: [self gridViewVisibleBounds]];
         
         BOOL enableAnim = [UIView areAnimationsEnabled];
         [UIView setAnimationsEnabled: NO];
@@ -1670,320 +1706,7 @@ NSArray * __sortDescriptors;
         
     }
 }
-/*
-- (void) updateVisibleGridCellsNow
-{
-	if ( _reloadingSuspendedCount > 0 )
-		return;
 
-	_reloadingSuspendedCount++;
-
-
-	NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
-	NSIndexSet * newVisibleIndices = [_gridData indicesOfCellsInRect: [self gridViewVisibleBounds]];
-
-	BOOL enableAnim = [UIView areAnimationsEnabled];
-	[UIView setAnimationsEnabled: NO];
-
-	@try
-	{
-		// a couple of simple tests
-		// TODO: if we replace _visibleIndices with an index set, this comparison will have to change
-		if ( ([_visibleCells count] != [newVisibleIndices count]) ||
-			([newVisibleIndices countOfIndexesInRange: _visibleIndices] != _visibleIndices.length) )
-		{
-			//NSLog( @"\n\n----------BEGIN CELL UPDATES----------" );
-
-			// something has changed. Compute intersections and remove/add cells as required
-			NSIndexSet * currentVisibleIndices = [NSIndexSet indexSetWithIndexesInRange: _visibleIndices];
-
-			// index sets for removed and inserted items
-			NSIndexSet * removedIndices = nil, * insertedIndices = nil;
-
-			// handle the simple case first
-			// TODO: if we replace _visibleIndices with an index set, this comparison will have to change
-			if ( [currentVisibleIndices intersectsIndexesInRange: _visibleIndices] == NO )
-			{
-				removedIndices = currentVisibleIndices;
-				insertedIndices = newVisibleIndices;
-			}
-			else	// more complicated -- compute negative intersections
-			{
-				removedIndices = [currentVisibleIndices aq_indexesOutsideIndexSet: newVisibleIndices];
-				insertedIndices = [newVisibleIndices aq_indexesOutsideIndexSet: currentVisibleIndices];
-			}
-
-			//NSLog( @"Removing indices: %@, inserting indices: %@", removedIndices, insertedIndices );
-			//NSLog( @"Visible cells count = %lu", (unsigned long)[_visibleCells count] );
-
-			if ( ([removedIndices count] != 0) || ([insertedIndices count] != 0) )
-			{
-				if ( [removedIndices count] != 0 )
-				{
-					NSMutableIndexSet * shifted = [removedIndices mutableCopy];
-
-					// get an index set for everything being removed relative to items' locations within the visible cell list
-					[shifted shiftIndexesStartingAtIndex: [removedIndices firstIndex] by: 0 - (NSInteger)_visibleIndices.location];
-					//NSLog( @"Removed indices relative to visible cell list: %@", shifted );
-
-					// pull out the cells for manipulation
-					NSArray * removedCells = [_visibleCells objectsAtIndexes: shifted];
-
-					// remove them from the visible list
-					[_visibleCells removeObjectsAtIndexes: shifted];
-					//NSLog( @"After removals, visible cells count = %lu", (unsigned long)[_visibleCells count] );
-
-					// don't need this any more
-					[shifted release]; shifted = nil;
-
-					// remove cells from the view hierarchy -- but only if they're not being animated by something else
-					NSArray * animating = [[self.animatingCells valueForKey: @"animatingView"] allObjects];
-					if ( [animating firstObjectCommonWithArray: removedCells] != nil )
-					{
-						NSMutableArray * mutable = [removedCells mutableCopy];
-						[mutable removeObjectsInArray: animating];
-						removedCells = [[mutable copy] autorelease];
-						[mutable release];
-					}
-
-					//NSLog( @"Removing %lu cells from screen", (unsigned long)[removedCells count] );
-					[removedCells makeObjectsPerformSelector: @selector(removeFromSuperview)];
-
-					// put them into the cell reuse queue
-					[self enqueueReusableCells: removedCells];
-				}
-
-				if ( [insertedIndices count] != 0 )
-				{
-					// now we do the insertions
-					NSUInteger first = [newVisibleIndices firstIndex];
-					NSLog( @"New starting index = %lu", (unsigned long)first );
-					NSLog( @"Visible cell count = %lu", (unsigned long)[_visibleCells count] );
-
-					// if there are cells being animated into place, skip them-- the animation has them already
-					if ( self.animatingCells.count != 0 )
-					{
-						NSMutableIndexSet * tmp = [insertedIndices mutableCopy];
-						for ( AQGridViewAnimatorItem * item in self.animatingCells )
-						{
-							// remove each animating item from the list we'll insert
-							[tmp removeIndex: item.index];
-						}
-
-						insertedIndices = [[tmp copy] autorelease];
-						[tmp release];
-					}
-
-					NSUInteger idx = [insertedIndices firstIndex];
-					while ( idx != NSNotFound )
-					{
-						AQGridViewCell * cell = [self createPreparedCellForIndex: idx];
-						[self delegateWillDisplayCell: cell atIndex: idx];
-
-						NSLog( @"Inserting cell for index %lu at visible list index %lu", (unsigned long)idx, (unsigned long)(idx - first) );
-						[_visibleCells insertObject: cell atIndex: idx-first];
-
-						idx = [insertedIndices indexGreaterThanIndex: idx];
-					}
-				}
-
-				// sort the visible cell list so everything is in global-index order
-				[self sortVisibleCellList];
-
-				// remove anything from _visibleCells whose index isn't in the visible range
-				NSMutableIndexSet * removeVisibleCells = [[NSMutableIndexSet alloc] init];
-				NSUInteger i = 0;
-				for ( AQGridViewCell * cell in _visibleCells )
-				{
-					if ( [newVisibleIndices containsIndex: cell.displayIndex] == NO )
-						[removeVisibleCells addIndex: i];
-					i++;
-				}
-
-				if ( [removeVisibleCells count] != 0 )
-				{
-					NSLog( @"Missed some cells which need to be pruned from the visible cell list: %@", removeVisibleCells );
-					[_visibleCells removeObjectsAtIndexes: removeVisibleCells];
-				}
-
-				[removeVisibleCells release];
-
-				if ( [_visibleCells count] < [newVisibleIndices count] )
-				{
-					// some items are missing-- stick them in
-
-				}
-
-				// this assertion is only valid if we have ownership of everything on screen
-				// if an animation is going on, then some cells are owned by the animation list instead
-				 if ( self.animatingCells.count == 0 )
-					 NSAssert( [_visibleCells count] == [newVisibleIndices count], @"Cell count doesn't match what was expected" );
-
-				// need to have _visibleIndices setup before calling layout
-				_visibleIndices.location = [newVisibleIndices firstIndex];
-				_visibleIndices.length = [newVisibleIndices count];
-
-				// layout the new cells
-				[self layoutCellsInVisibleCellRange: NSMakeRange(0, [_visibleCells count])];
-			}
-
-			//NSLog( @"----------END CELL UPDATES----------\n\n" );
-		}
-	}
-	@finally
-	{
-		[UIView setAnimationsEnabled: enableAnim];
-		[pool drain];
-		_reloadingSuspendedCount--;
-	}
-}
-*/
-/*
-- (void) updateVisibleGridCellsNow
-{
-	if ( _reloadingSuspendedCount > 0 )
-		return;
-
-	if ( _flags.isAnimatingUpdates || _flags.updating )
-		return;
-
-	_reloadingSuspendedCount++;
-	NSIndexSet * newVisibleIndices = [_gridData indicesOfCellsInRect: [self gridViewVisibleBounds]];
-
-	NSUInteger beforeTest = (_visibleIndices.location == 0 ? NSNotFound : _visibleIndices.location - 1);
-	NSUInteger afterTest = MIN(_visibleIndices.location+_visibleIndices.length, _gridData.numberOfItems);
-
-	//NSLog( @"New Visible Indices = %@, _visibleIndices = %@", newVisibleIndices, NSStringFromRange(_visibleIndices) );
-
-	// do we need to remove anything?
-	if ( [newVisibleIndices countOfIndexesInRange: _visibleIndices] < _visibleIndices.length )
-	{
-        NSMutableIndexSet * indicesToRemove = [[NSMutableIndexSet alloc] initWithIndexesInRange: _visibleIndices];
-        [indicesToRemove removeIndexes: newVisibleIndices];
-        if ( [indicesToRemove aq_isSetContiguous] )
-        {
-            // nice simple optimized version
-            // front or back?
-            BOOL removeFromFront = NO;
-            if ( [indicesToRemove containsIndex: _visibleIndices.location] )
-                removeFromFront = YES;
-
-            NSUInteger numToRemove = [indicesToRemove count];
-            NSRange arrayRange = {0, 0};
-			if ( removeFromFront )
-				arrayRange = NSMakeRange(0, numToRemove);
-			else
-				arrayRange = NSMakeRange([_visibleCells count] - numToRemove, numToRemove);
-
-			//NSLog( @"Removing cells in visible range: %@", NSStringFromRange(arrayRange) );
-
-			// grab the removed cells (retains them)
-			NSMutableArray * removedCells = [[[_visibleCells subarrayWithRange: arrayRange] mutableCopy] autorelease];
-
-			// don't remove cells which are animating right now
-			if ( self.animatingCells.count != 0 )
-			{
-				[removedCells removeObjectsInArray: self.animatingCells];
-				numToRemove = [removedCells count];
-				arrayRange.length = numToRemove;
-			}
-
-			// remove from the visible list
-			[_visibleCells removeObjectsInRange: arrayRange];
-
-			// trim the visible cell index range
-			_visibleIndices.length -= numToRemove;
-
-			if ( removeFromFront )
-				_visibleIndices.location += numToRemove;
-
-			// remove cells from superview
-			[removedCells makeObjectsPerformSelector: @selector(removeFromSuperview)];
-
-			// put them into the recycled cell list
-			[self enqueueReusableCells: removedCells];
-
-			// done removing cells
-        }
-		else
-		{
-			// we need to be much more thorough-- a large number of items have been removed from all over
-			NSMutableArray * removedCells = [[_visibleCells mutableCopy] autorelease];
-			if ( self.animatingCells.count != 0 )
-				[removedCells removeObjectsInArray: self.animatingCells];
-
-			// remove any cells which aren't animating to new positions
-			[_visibleCells removeObjectsInArray: removedCells];
-			[removedCells makeObjectsPerformSelector: @selector(removeFromSuperview)];
-			[self enqueueReusableCells: removedCells];
-
-			// update visible indices as appropriate-- brute force this time
-			_visibleIndices.location = [newVisibleIndices firstIndex];
-			_visibleIndices.length = [newVisibleIndices count];
-
-			// load the new cells
-			NSUInteger idx = [newVisibleIndices firstIndex];
-			while ( idx != NSNotFound )
-			{
-				AQGridViewCell * cell = [self createPreparedCellForIndex: idx];
-				[self delegateWillDisplayCell: cell atIndex: idx];
-				[_visibleCells addObject: cell];
-				idx = [newVisibleIndices indexGreaterThanIndex: idx];
-			}
-
-			[self layoutCellsInVisibleCellRange: NSMakeRange(0, [_visibleCells count])];
-
-			// all done
-		}
-
-		[indicesToRemove release];
-	}
-
-	// no animations on automatic cell layout
-	[UIView setAnimationsEnabled: NO];
-
-	if ( (beforeTest != NSNotFound) && ([newVisibleIndices containsIndex: beforeTest]) )
-	{
-		// moving backwards
-		NSMutableIndexSet * newIndices = [[newVisibleIndices mutableCopy] autorelease];
-
-		// prune the ones we know about already, so we have a list of only the new ones
-		[newIndices removeIndexesInRange: _visibleIndices];
-		[newIndices removeIndexesInRange: _revealingIndices];
-
-		// insert any new cells, in reverse order (so we always insert at index zero)
-		NSUInteger idx = [newIndices lastIndex];
-		while ( idx != NSNotFound )
-		{
-			AQGridViewCell * cell = [self createPreparedCellForIndex: idx];
-			[self delegateWillDisplayCell: cell atIndex: idx];
-			[_visibleCells insertObject: cell atIndex: _revealingIndices.length];
-
-			idx = [newIndices indexLessThanIndex: idx];
-		}
-
-		// update the visibleCell index range
-		_visibleIndices.length += [newIndices count];
-		_visibleIndices.location = [newVisibleIndices firstIndex];
-
-		// get the range of the new items
-		NSRange newCellRange = NSMakeRange([newIndices firstIndex], [newIndices lastIndex] - [newIndices firstIndex] + 1);
-
-		// map this range onto the current visible cell array
-		newCellRange.location = MIN(newCellRange.location - _visibleIndices.location, 0);
-
-		// now update their locations
-		[self layoutCellsInVisibleCellRange: newCellRange];
-	}
-	else if ( (NSLocationInRange(afterTest, _visibleIndices) == NO) && ([newVisibleIndices containsIndex: afterTest]) )
-	{
-		[self updateForwardCellsForVisibleIndices: newVisibleIndices];
-	}
-
-	[UIView setAnimationsEnabled: YES];
-	_reloadingSuspendedCount--;
-}
-*/
 
 - (void) layoutCellsInVisibleCellRange: (NSRange) range
 {
@@ -1994,18 +1717,16 @@ NSArray * __sortDescriptors;
 		NSArray * layoutList = [_visibleCells subarrayWithRange: range];
 		for ( AQGridViewCell * cell in layoutList )
 		{
-			if ( [_animatingIndices containsIndex: cell.displayIndex] )
+			if ( [_animatingIndices containsIndex:cell.displayIndex] )
 				continue;		// don't adjust layout of something that is animating around
-
-			CGRect gridRect = [_gridData cellRectAtIndex: cell.displayIndex];
-			CGRect cellFrame = cell.frame;
-
-			cell.frame = [self fixCellFrame: cellFrame forGridRect: gridRect];
+            
+			cell.frame = [self adjustCellFrame:cell.frame forGridRect:[_gridLayout cellRectAtIndex: cell.displayIndex]];
 			cell.selected = (cell.displayIndex == _selectedIndex);
 		}
 
 	}
 }
+
 
 - (void) layoutAllCells
 {
@@ -2015,7 +1736,8 @@ NSArray * __sortDescriptors;
 	[self layoutCellsInVisibleCellRange: range];
 }
 
-- (CGRect) fixCellFrame: (CGRect) cellFrame forGridRect: (CGRect) gridRect
+
+- (CGRect) adjustCellFrame: (CGRect) cellFrame forGridRect: (CGRect) gridRect
 {
 	if ( _flags.resizesCellWidths == 1 )
 	{
@@ -2038,14 +1760,15 @@ NSArray * __sortDescriptors;
 	return ( cellFrame );
 }
 
-- (AQGridViewCell *) createPreparedCellForIndex: (NSUInteger) index usingGridData: (AQGridViewData *) gridData
+
+- (AQGridViewCell *) createPreparedCellForIndex: (NSUInteger) index usingGridData: (AQGridViewLayout *) gridData
 {
 	[UIView setAnimationsEnabled: NO];
 	AQGridViewCell * cell = [_dataSource gridView: self cellForItemAtIndex: index];
 	cell.editing = self.editing;
 	cell.displayIndex = index;
 
-	cell.frame = [self fixCellFrame: cell.frame forGridRect: [gridData cellRectAtIndex: index]];
+	cell.frame = [self adjustCellFrame:cell.frame forGridRect:[gridData cellRectAtIndex: index]];
 	if ( _backgroundView.superview == self )
 		[self insertSubview: cell aboveSubview: _backgroundView];
 	else
@@ -2055,10 +1778,12 @@ NSArray * __sortDescriptors;
 	return ( cell );
 }
 
+
 - (AQGridViewCell *) createPreparedCellForIndex: (NSUInteger) index
 {
-    return ( [self createPreparedCellForIndex: index usingGridData: _gridData] );
+    return ( [self createPreparedCellForIndex: index usingGridData: _gridLayout] );
 }
+
 
 - (void) insertVisibleCell: (AQGridViewCell *) cell atIndex: (NSUInteger) visibleCellListIndex
 {
@@ -2067,6 +1792,7 @@ NSArray * __sortDescriptors;
 
 	[_visibleCells insertObject: cell atIndex: visibleCellListIndex];
 }
+
 
 - (void) deleteVisibleCell: (AQGridViewCell *) cell atIndex: (NSUInteger) visibleCellListIndex appendingNewCell: (AQGridViewCell *) newCell
 {
@@ -2078,6 +1804,7 @@ NSArray * __sortDescriptors;
 	[self doAddVisibleCell: newCell];
 }
 
+
 - (void) ensureCellInVisibleList: (AQGridViewCell *) cell
 {
 	if ( [_visibleCells containsObject: cell] == NO )
@@ -2086,7 +1813,10 @@ NSArray * __sortDescriptors;
 	[_visibleCells sortUsingSelector: @selector(compareOriginAgainstCell:)];
 }
 
+
 @end
+
+
 
 @implementation AQGridView (AQGridViewPrivate)
 
@@ -2099,6 +1829,7 @@ NSArray * __sortDescriptors;
 	//	_reloadingSuspendedCount++;
 }
 
+
 - (void) viewDidRotate
 {
 	if ( _reloadingSuspendedCount == 0 )
@@ -2108,7 +1839,10 @@ NSArray * __sortDescriptors;
 		[self updateVisibleGridCellsNow];
 }
 
+
 @end
+
+
 
 @implementation AQGridView (CellLocationDelegation)
 
@@ -2119,5 +1853,6 @@ NSArray * __sortDescriptors;
 
 	[self.delegate gridView: self willDisplayCell: cell forItemAtIndex: index];
 }
+
 
 @end

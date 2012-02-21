@@ -35,7 +35,7 @@
  */
 
 #import "AQGridViewUpdateInfo.h"
-#import "AQGridViewData.h"
+#import "AQGridViewLayout.h"
 #import "AQGridView+CellLayout.h"
 #import "AQGridView+CellLocationDelegation.h"
 #import "AQGridViewCell+AQGridViewCellPrivate.h"
@@ -45,7 +45,7 @@
 
 @implementation AQGridViewUpdateInfo
 
-- (id) initWithOldGridData: (AQGridViewData *) oldGridData forGridView: (AQGridView *) gridView
+- (id) initWithOldGridData: (AQGridViewLayout *) oldGridData forGridView: (AQGridView *) gridView
 {
 	self = [super init];
 	if ( self == nil )
@@ -451,7 +451,7 @@
 	return ( [_reloadItems copy] );
 }
 
-- (AQGridViewData *) newGridViewData
+- (AQGridViewLayout *) newGridViewData
 {
 	return ( _newGridData );
 }
@@ -799,7 +799,7 @@
 			cell = [_gridView createPreparedCellForIndex: newIndex];
 			// in its old location
 			[UIView setAnimationsEnabled: NO];
-			cell.frame = [_gridView fixCellFrame: cell.frame forGridRect: [_oldGridData cellRectAtIndex: oldIndex]];
+			cell.frame = [_gridView adjustCellFrame: cell.frame forGridRect: [_oldGridData cellRectAtIndex: oldIndex]];
 			[UIView setAnimationsEnabled: YES];
 		}
 		else
@@ -814,7 +814,7 @@
 			[newVisibleCells addObject: [AQGridViewAnimatorItem itemWithView: cell index: newIndex]];
 		
 		// animate it into its new location
-		CGRect frame = [_gridView fixCellFrame: cell.frame forGridRect: [_newGridData cellRectAtIndex: newIndex]];
+		CGRect frame = [_gridView adjustCellFrame: cell.frame forGridRect: [_newGridData cellRectAtIndex: newIndex]];
 		//if ( CGRectEqualToRect(frame, cell.frame) == NO )
 		//	NSLog( @"Moving frame from %@ to %@", NSStringFromCGRect(cell.frame), NSStringFromCGRect(frame) );
 		cell.frame = frame;

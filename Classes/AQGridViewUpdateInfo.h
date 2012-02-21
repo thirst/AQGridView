@@ -61,8 +61,8 @@
 	NSMutableIndexSet * _reloadedIndices;
 	
 	// old and new grid data -- for bounds calculations
-	AQGridViewData *	_oldGridData;
-	AQGridViewData *	_newGridData;
+	AQGridViewLayout *	_oldGridData;
+	AQGridViewLayout *	_newGridData;
 	
 	// mapping tables, used to map from old indices to new ones
 	NSUInteger *		_oldToNewIndexMap;
@@ -77,7 +77,7 @@
 	NSMutableSet *		_animatingCells;
 }
 
-- (id) initWithOldGridData: (AQGridViewData *) oldGridData forGridView: (AQGridView *) gridView;
+- (id) initWithOldGridData: (AQGridViewLayout *) oldGridData forGridView: (AQGridView *) gridView;
 
 - (void) updateItemsAtIndices: (NSIndexSet *) indices
 				 updateAction: (AQGridViewUpdateAction) action
@@ -102,7 +102,7 @@
 - (NSArray *) sortedMoveItems;
 - (NSArray *) sortedReloadItems;
 
-- (AQGridViewData *) newGridViewData;
+- (AQGridViewLayout *) newGridViewData;
 - (NSUInteger) numberOfItemsAfterUpdates;
 
 - (NSUInteger) newIndexForOldIndex: (NSUInteger) oldIndex;

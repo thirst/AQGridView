@@ -59,7 +59,7 @@ typedef enum {
 } AQGridViewLayoutDirection;
 
 @protocol AQGridViewDataSource;
-@class AQGridView, AQGridViewData, AQGridViewUpdateInfo;
+@class AQGridView, AQGridViewLayout, AQGridViewUpdateInfo;
 
 @protocol AQGridViewDelegate <NSObject, UIScrollViewDelegate>
 
@@ -99,7 +99,7 @@ extern NSString * const AQGridViewSelectionDidChangeNotification;
 {
 	id<AQGridViewDataSource>		__unsafe_unretained _dataSource;
 
-	AQGridViewData *				_gridData;
+	AQGridViewLayout *				_gridLayout;
 	NSMutableArray *				_updateInfoStack;
 	NSInteger						_animationCount;
 
@@ -178,11 +178,8 @@ extern NSString * const AQGridViewSelectionDidChangeNotification;
 
 @property (nonatomic, readonly) NSUInteger numberOfItems;
 
-@property (nonatomic, readonly) CGSize gridCellSize;
-
 - (void)doAddVisibleCell: (UIView *)cell;
 
-- (CGRect) rectForItemAtIndex: (NSUInteger) index;
 - (CGRect) gridViewVisibleBounds;
 - (AQGridViewCell *) cellForItemAtIndex: (NSUInteger) index;
 - (NSUInteger) indexForItemAtPoint: (CGPoint) point;
