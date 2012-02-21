@@ -93,7 +93,7 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 
 @implementation AQGridView
 
-@synthesize dataSource=_dataSource, backgroundView=_backgroundView, separatorColor=_separatorColor, animatingCells=_animatingCells, animatingIndices=_animatingIndices;
+@synthesize dataSource=_dataSource, backgroundView=_backgroundView, animatingCells=_animatingCells, animatingIndices=_animatingIndices;
 
 - (void) _sharedGridViewInit
 {
@@ -107,15 +107,12 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	_updateInfoStack = [[NSMutableArray alloc] init];
 
 	self.clipsToBounds = YES;
-	self.separatorColor = [UIColor colorWithWhite: 0.85 alpha: 1.0];
     self.canCancelContentTouches = YES;
 
 	_selectedIndex = NSNotFound;
 	_pendingSelectionIndex = NSNotFound;
 
 	_flags.resizesCellWidths = 0;
-	_flags.numColumns = [_gridData numberOfItemsPerRow];
-	_flags.separatorStyle = AQGridViewCellSeparatorStyleEmptySpace;
 	_flags.allowsSelection = 1;
 	_flags.usesPagedHorizontalScrolling = NO;
 	_flags.contentSizeFillsBounds = 1;
@@ -206,18 +203,6 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	return ( _gridData.numberOfItems );
 }
 
-- (NSUInteger) numberOfColumns
-{
-	if ( _flags.numColumns == 0 )
-		_flags.numColumns = 1;
-	return ( _flags.numColumns );
-}
-
-- (NSUInteger) numberOfRows
-{
-	return ( _gridData.numberOfItems / _flags.numColumns );
-}
-
 - (BOOL) allowsSelection
 {
 	return ( _flags.allowsSelection );
@@ -295,26 +280,6 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 		return;
 
 	_flags.usesPagedHorizontalScrolling = i;
-	[self setNeedsLayout];
-}
-
-- (AQGridViewCellSeparatorStyle) separatorStyle
-{
-	return ( _flags.separatorStyle );
-}
-
-- (void) setSeparatorStyle: (AQGridViewCellSeparatorStyle) style
-{
-	if ( style == _flags.separatorStyle )
-		return;
-
-	_flags.separatorStyle = style;
-
-	for ( AQGridViewCell * cell in _visibleCells )
-	{
-		cell.separatorStyle = style;
-	}
-
 	[self setNeedsLayout];
 }
 
@@ -463,7 +428,6 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	BOOL wasAtBottom = ((oldGridSize.height != 0.0) && (CGRectGetMaxY(oldBounds) == oldGridSize.height));
 
 	[_gridData gridViewDidChangeBoundsSize: bounds.size];
-    _flags.numColumns = [_gridData numberOfItemsPerRow];
 	CGSize newGridSize = [_gridData sizeForEntireGrid];
 
 	CGPoint oldMaxLocation = CGPointMake(CGRectGetMaxX(oldBounds), CGRectGetMaxY(oldBounds));
@@ -621,7 +585,6 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	if ( _flags.dataSourceGridCellSize == 1 )
 	{
 		[_gridData setDesiredCellSize: [_dataSource portraitGridCellSizeForGridView: self]];
-		_flags.numColumns = [_gridData numberOfItemsPerRow];
 	}
 
 	_gridData.numberOfItems = [_dataSource numberOfItemsInGridView: self];
@@ -1191,24 +1154,6 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	[self insertSubview: _backgroundView atIndex: 0];
 
 	// this view is already laid out nicely-- no need to call -setNeedsLayout at all
-}
-
-- (UIColor *) separatorColor
-{
-	return ( _separatorColor );
-}
-
-- (void) setSeparatorColor: (UIColor *) color
-{
-	if ( color == _separatorColor )
-		return;
-
-	_separatorColor = color;
-
-	for ( AQGridViewCell * cell in _visibleCells )
-	{
-		cell.separatorColor = _separatorColor;
-	}
 }
 
 #pragma mark -
@@ -2097,7 +2042,6 @@ NSArray * __sortDescriptors;
 {
 	[UIView setAnimationsEnabled: NO];
 	AQGridViewCell * cell = [_dataSource gridView: self cellForItemAtIndex: index];
-	cell.separatorStyle = _flags.separatorStyle;
 	cell.editing = self.editing;
 	cell.displayIndex = index;
 
@@ -2170,24 +2114,6 @@ NSArray * __sortDescriptors;
 
 - (void) delegateWillDisplayCell: (AQGridViewCell *) cell atIndex: (NSUInteger) index
 {
-	if ( cell.separatorStyle == AQGridViewCellSeparatorStyleSingleLine )
-	{
-		// determine which edges need a separator
-		AQGridViewCellSeparatorEdge edge = 0;
-		if ( (index % self.numberOfColumns) != self.numberOfColumns-1 )
-		{
-			edge |= AQGridViewCellSeparatorEdgeRight;
-		}
-		//if ( index <= (_gridData.numberOfItems - self.numberOfColumns) )
-		{
-			edge |= AQGridViewCellSeparatorEdgeBottom;
-		}
-
-		cell.separatorEdge = edge;
-	}
-
-    //NSLog( @"Displaying cell at index %lu", (unsigned long) index );
-
 	if ( _flags.delegateWillDisplayCell == 0 )
 		return;
 
