@@ -97,25 +97,29 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 
 @implementation AQGridView
 
-@synthesize dataSource=_dataSource, backgroundView=_backgroundView, animatingCells=_animatingCells, animatingIndices=_animatingIndices;
+@synthesize dataSource=_dataSource;
+@synthesize gridLayout = _gridLayout;
+@synthesize backgroundView=_backgroundView;
+@synthesize animatingCells=_animatingCells;
+@synthesize animatingIndices=_animatingIndices;
 
 - (void) _sharedGridViewInit
 {
 	_gridLayout = [[AQGridViewLayout alloc] initWithBoundsSize:self.bounds.size];
 	[_gridLayout setDesiredCellSize: CGSizeMake(96.0, 128.0)];
-
+    
 	_visibleBounds = self.bounds;
 	_visibleCells = [[NSMutableArray alloc] init];
 	_reusableGridCells = [[NSMutableDictionary alloc] init];
 	_highlightedIndices = [[NSMutableIndexSet alloc] init];
 	_updateInfoStack = [[NSMutableArray alloc] init];
-
+    
 	self.clipsToBounds = YES;
     self.canCancelContentTouches = YES;
-
+    
 	_selectedIndex = NSNotFound;
 	_pendingSelectionIndex = NSNotFound;
-
+    
 	_flags.resizesCellWidths = 0;
 	_flags.allowsSelection = 1;
 	_flags.usesPagedHorizontalScrolling = NO;
@@ -128,9 +132,9 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
     self = [super initWithFrame:frame];
 	if ( self == nil )
 		return ( nil );
-
+    
 	[self _sharedGridViewInit];
-
+    
 	return ( self );
 }
 

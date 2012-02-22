@@ -162,6 +162,8 @@ extern NSString * const AQGridViewSelectionDidChangeNotification;
 @property (nonatomic, unsafe_unretained) IBOutlet id<AQGridViewDataSource> dataSource;
 @property (nonatomic, unsafe_unretained) IBOutlet id<AQGridViewDelegate> delegate;
 
+@property (nonatomic, retain) AQGridViewLayout  *gridLayout;
+
 // Data
 
 - (void) reloadData;

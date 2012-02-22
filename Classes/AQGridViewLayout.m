@@ -61,7 +61,7 @@
 
 - (id) copyWithZone: (NSZone *) zone
 {
-	AQGridViewLayout * theCopy = [[AQGridViewLayout allocWithZone: zone] initWithBoundsSize:_boundsSize];
+	AQGridViewLayout * theCopy = [[[self class] allocWithZone: zone] initWithBoundsSize:_boundsSize];
 	theCopy->_desiredCellSize = _desiredCellSize;
 	theCopy->_actualCellSize = _actualCellSize;
 	theCopy->_layoutDirection = _layoutDirection;
@@ -80,6 +80,28 @@
 	return ( [self copyWithZone: zone] );
 }
 
+
+- (void) setLayoutDirection: (AQGridViewLayoutDirection) direction
+{
+	if ( direction == AQGridViewLayoutDirectionVertical )
+		[self fixDesiredCellSizeForWidth: _boundsSize.width];
+	else
+		_actualCellSize = _desiredCellSize;
+	_layoutDirection = direction;
+}
+
+
+- (CGRect) rectForEntireGrid
+{
+	CGRect rect;
+	rect.origin.x = _leftPadding;
+	rect.origin.y = _topPadding;
+	rect.size = [self sizeForEntireGrid];
+	return ( rect );
+}
+
+
+#pragma mark AQGridLayout Protocol
 
 - (void) gridViewDidChangeBoundsSize: (CGSize) boundsSize
 {
@@ -125,36 +147,6 @@
 - (CGRect) cellRectForPoint: (CGPoint) point
 {
 	return ( [self cellRectAtIndex: [self itemIndexForPoint: point]] );
-}
-
-
-- (void) setDesiredCellSize: (CGSize) desiredCellSize
-{
-	_desiredCellSize = desiredCellSize;
-	if ( _layoutDirection == AQGridViewLayoutDirectionVertical )
-		[self fixDesiredCellSizeForWidth: _boundsSize.width];
-	else
-		_actualCellSize = _desiredCellSize;
-}
-
-
-- (void) setLayoutDirection: (AQGridViewLayoutDirection) direction
-{
-	if ( direction == AQGridViewLayoutDirectionVertical )
-		[self fixDesiredCellSizeForWidth: _boundsSize.width];
-	else
-		_actualCellSize = _desiredCellSize;
-	_layoutDirection = direction;
-}
-
-
-- (CGRect) rectForEntireGrid
-{
-	CGRect rect;
-	rect.origin.x = _leftPadding;
-	rect.origin.y = _topPadding;
-	rect.size = [self sizeForEntireGrid];
-	return ( rect );
 }
 
 
@@ -221,6 +213,19 @@
 	}
 	
 	return ( result );
+}
+
+
+#pragma mark -
+#pragma grid-specific
+
+- (void) setDesiredCellSize: (CGSize) desiredCellSize
+{
+	_desiredCellSize = desiredCellSize;
+	if ( _layoutDirection == AQGridViewLayoutDirectionVertical )
+		[self fixDesiredCellSizeForWidth: _boundsSize.width];
+	else
+		_actualCellSize = _desiredCellSize;
 }
 
 
