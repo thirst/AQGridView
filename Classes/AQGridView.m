@@ -765,12 +765,9 @@ NSString * const AQGridViewSelectionDidChangeNotification = @"AQGridViewSelectio
 	[self scrollRectToVisible: targetRect animated: animated];
 
 	// for long grids, ensure there are visible cells when scrolled to
-	if (!animated) {
+	if (!animated)
+    {
 		[self updateVisibleGridCellsNow];
-		/*if (![_visibleCells count]) {
-			NSIndexSet * newIndices = [_gridData indicesOfCellsInRect: [self gridViewVisibleBounds]];
-			[self updateForwardCellsForVisibleIndices: newIndices];
-		}*/
 	}
 }
 
