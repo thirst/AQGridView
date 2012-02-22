@@ -1414,6 +1414,7 @@ passToSuper:
 - (void)doAddVisibleCell: (UIView *)cell
 {
 	[_visibleCells addObject: cell];
+    
 	// updated: if we're adding it to our visibleCells collection, really it should be in the gridview.
 	if ( cell.superview == nil )
 	{
@@ -1573,7 +1574,6 @@ NSArray * __sortDescriptors;
                             {
                                 // ensure this is in the visible cell list
                                 if ( [_visibleCells containsObject: item.animatingView] == NO )
-                                    //[_visibleCells addObject: item.animatingView];
                                     [self doAddVisibleCell: item.animatingView];
                             }
                             else
@@ -1581,7 +1581,6 @@ NSArray * __sortDescriptors;
                                 // it's an image that's being moved, likely because it *was* going offscreen before
                                 // the user scrolled. Create a real cell, but hide it until the animation is complete.
                                 AQGridViewCell * cell = [self createPreparedCellForIndex: idx];
-                                //[_visibleCells addObject: cell];
                                 [self doAddVisibleCell: cell];
                                 
                                 // we don't tell the delegate yet, we just hide it
@@ -1599,7 +1598,6 @@ NSArray * __sortDescriptors;
                     while ( idx != NSNotFound )
                     {
                         AQGridViewCell * cell = [self createPreparedCellForIndex: idx];
-                        //[_visibleCells addObject: cell];
                         [self doAddVisibleCell: cell];
                         
                         // tell the delegate
@@ -1611,7 +1609,7 @@ NSArray * __sortDescriptors;
                 
                 if ( [_visibleCells count] > [newVisibleIndices count] )
                 {
-                    //NSLog( @"Have to prune visible cell list, I've still got extra cells in there!" );
+                    NSLog( @"Have to prune visible cell list, I've still got extra cells in there!" );
                     NSMutableIndexSet * animatingDestinationIndices = [[NSMutableIndexSet alloc] init];
                     for ( AQGridViewAnimatorItem * item in _animatingCells )
                     {
@@ -1664,7 +1662,6 @@ NSArray * __sortDescriptors;
                     while ( idx != NSNotFound )
                     {
                         AQGridViewCell * cell = [self createPreparedCellForIndex: idx];
-                        //[_visibleCells addObject: cell];
                         [self doAddVisibleCell: cell];
                         
                         // tell the delegate
@@ -1783,17 +1780,15 @@ NSArray * __sortDescriptors;
 	if ( visibleCellListIndex >= [_visibleCells count] )
 		return;
 
-	[_visibleCells removeObjectAtIndex: visibleCellListIndex];
-	//[_visibleCells addObject: newCell];
-	[self doAddVisibleCell: newCell];
+	[_visibleCells removeObjectAtIndex: visibleCellListIndex];    
 }
 
 
 - (void) ensureCellInVisibleList: (AQGridViewCell *) cell
 {
 	if ( [_visibleCells containsObject: cell] == NO )
-		//[_visibleCells addObject: cell];
 		[self doAddVisibleCell: cell];
+    
 	[_visibleCells sortUsingSelector: @selector(compareOriginAgainstCell:)];
 }
 
