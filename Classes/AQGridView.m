@@ -1,4 +1,4 @@
-/*
+    /*
  * AQGridView.m
  * AQGridView
  *
@@ -1642,10 +1642,9 @@ NSArray * __sortDescriptors;
                     // all removed from superview, just need to remove from the list now
                     [_visibleCells removeObjectsAtIndexes: toRemove];
                 }
-                
-                if ( [_visibleCells count] < [newVisibleIndices count] )
+                else if ( [_visibleCells count] < [newVisibleIndices count] )
                 {
-                    NSLog( @"Visible cell list is missing some items!" );
+                    NSLog( @"Visible cell list is missing some items! %i < %i", [_visibleCells count], [newVisibleIndices count] );
                     
                     NSMutableIndexSet * visibleSet = [[NSMutableIndexSet alloc] init];
                     for ( AQGridViewCell * cell in _visibleCells )
