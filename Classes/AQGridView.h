@@ -99,7 +99,8 @@ extern NSString * const AQGridViewSelectionDidChangeNotification;
 	NSInteger						_animationCount;
 
 	CGRect							_visibleBounds;
-	NSRange							_visibleIndices;
+	//NSRange							_rangeOfVisibleIndices;
+    NSMutableIndexSet *             _visibleIndices;
 	NSMutableArray *				_visibleCells;
 	NSMutableDictionary *			_reusableGridCells;
 
@@ -177,11 +178,9 @@ extern NSString * const AQGridViewSelectionDidChangeNotification;
 - (CGRect) gridViewVisibleBounds;
 - (AQGridViewCell *) cellForItemAtIndex: (NSUInteger) index;
 - (NSUInteger) indexForItemAtPoint: (CGPoint) point;
-- (NSUInteger) indexForCell: (AQGridViewCell *) cell;
 - (AQGridViewCell *) cellForItemAtPoint: (CGPoint) point;
 
 - (NSArray *) visibleCells;
-- (NSIndexSet *) visibleCellIndices;
 
 - (void) scrollToItemAtIndex: (NSUInteger) index atScrollPosition: (AQGridViewScrollPosition) scrollPosition animated: (BOOL) animated;
 
